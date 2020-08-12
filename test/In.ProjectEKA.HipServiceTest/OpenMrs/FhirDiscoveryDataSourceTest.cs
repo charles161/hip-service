@@ -6,26 +6,23 @@ using Hl7.Fhir.Model;
 using In.ProjectEKA.HipService.OpenMrs;
 using Moq;
 using Xunit;
+using Task = System.Threading.Tasks.Task;
 
 namespace In.ProjectEKA.HipServiceTest.OpenMrs
 {
-    public static class ExpectedDiscoveryPathConstants
-    {
-        public const string OnPatientPath = "ws/fhir2/Patient";
-    }
-
-    [Collection("Discovery Data Source Tests")]
-    public class DiscoveryDataSourceTest
+     
+    [Collection("Fhir Discovery Data Source Tests")]
+    public class FhirDiscoveryDataSourceTest
     {
         [Fact]
-        public async System.Threading.Tasks.Task ShouldReturnListOfPatientDto()
+        public async Task ShouldReturnListOfPatientDto()
         {
             //Given
             var openmrsClientMock = new Mock<IOpenMrsClient>();
-            var discoveryDataSource = new DiscoveryDataSource(openmrsClientMock.Object);
+            var discoveryDataSource = new FhirDiscoveryDataSource(openmrsClientMock.Object);
 
             openmrsClientMock
-                .Setup(x => x.GetAsync(ExpectedDiscoveryPathConstants.OnPatientPath))
+                .Setup(x => x.GetAsync(Endpoints.Fhir.OnPatientPath))
                 .ReturnsAsync(new HttpResponseMessage
                 {
                     StatusCode = HttpStatusCode.OK,
@@ -48,14 +45,14 @@ namespace In.ProjectEKA.HipServiceTest.OpenMrs
         }
 
         [Fact]
-        public async System.Threading.Tasks.Task ShouldReturnEmptyListIfAllResourcesAreDifferentFromPatient()
+        public async Task ShouldReturnEmptyListIfAllResourcesAreDifferentFromPatient()
         {
             //Given
             var openMrsClientMock = new Mock<IOpenMrsClient>();
-            var discoveryDataSource = new DiscoveryDataSource(openMrsClientMock.Object);
+            var discoveryDataSource = new FhirDiscoveryDataSource(openMrsClientMock.Object);
 
             openMrsClientMock
-                .Setup(x => x.GetAsync(ExpectedDiscoveryPathConstants.OnPatientPath))
+                .Setup(x => x.GetAsync(Endpoints.Fhir.OnPatientPath))
                 .ReturnsAsync(new HttpResponseMessage
                 {
                     StatusCode = HttpStatusCode.OK,
@@ -71,14 +68,14 @@ namespace In.ProjectEKA.HipServiceTest.OpenMrs
         }
 
         [Fact]
-        public async System.Threading.Tasks.Task ShouldReturnEmptyListWhenGotNoRecord()
+        public async Task ShouldReturnEmptyListWhenGotNoRecord()
         {
             //Given
             var openmrsClientMock = new Mock<IOpenMrsClient>();
-            var discoveryDataSource = new DiscoveryDataSource(openmrsClientMock.Object);
+            var discoveryDataSource = new FhirDiscoveryDataSource(openmrsClientMock.Object);
 
             openmrsClientMock
-                .Setup(x => x.GetAsync(ExpectedDiscoveryPathConstants.OnPatientPath))
+                .Setup(x => x.GetAsync(Endpoints.Fhir.OnPatientPath))
                 .ReturnsAsync(new HttpResponseMessage
                 {
                     StatusCode = HttpStatusCode.OK,
@@ -109,12 +106,12 @@ namespace In.ProjectEKA.HipServiceTest.OpenMrs
         [InlineData("ws/fhir2/Patient/?name=David&birthdate=1982-05-21", "David", null, "1982-05-21")]
         [InlineData("ws/fhir2/Patient/?name=David&gender=male&birthdate=1982-05-21", "David", AdministrativeGender.Male,
             "1982-05-21")]
-        public async System.Threading.Tasks.Task ShouldQueryDataSourceByNameAccordingToTheFilter(
+        public async Task ShouldQueryDataSourceByNameAccordingToTheFilter(
             string expectedPath, string name, AdministrativeGender? gender, string yearOfBrith)
         {
             //Given
             var openmrsClientMock = new Mock<IOpenMrsClient>();
-            var discoveryDataSource = new DiscoveryDataSource(openmrsClientMock.Object);
+            var discoveryDataSource = new FhirDiscoveryDataSource(openmrsClientMock.Object);
 
             openmrsClientMock
                 .Setup(x => x.GetAsync(It.IsAny<string>()))
@@ -134,7 +131,7 @@ namespace In.ProjectEKA.HipServiceTest.OpenMrs
 
         [Fact(Skip = "Requires AWS access")]
         [Trait("Category", "Infrastructure")]
-        public async System.Threading.Tasks.Task ShouldGetPatientDataRealCallAsync()
+        public async Task ShouldGetPatientDataRealCallAsync()
         {
             //Given
             // Disable SSL verification in test only
@@ -150,14 +147,63 @@ namespace In.ProjectEKA.HipServiceTest.OpenMrs
                 Username = "someusername",
                 Password = "somepassword"
             };
-            var openmrsClient = new OpenMrsClient(httpClient, openmrsConfiguration);
-            var discoveryDataSource = new DiscoveryDataSource(openmrsClient);
+            var openmrsClient = new FhirClient(httpClient, openmrsConfiguration);
+            var discoveryDataSource = new FhirDiscoveryDataSource(openmrsClient);
             //When
             var patients = await discoveryDataSource.LoadPatientsAsync(null, null, null);
             //Then
             patients.Should().NotBeEmpty();
         }
 
+        [Fact]
+        public async System.Threading.Tasks.Task LoadPatientAsync_ShouldReturnPatient_WhenFound() {
+            //Given
+            var openmrsClientMock = new Mock<IOpenMrsClient>();
+            var discoveryDataSource = new FhirDiscoveryDataSource(openmrsClientMock.Object);
+            var patientId = "95db77c6-cc8a-4208-99cc-c69a207114a3";
+            var path = $"{Endpoints.Fhir.OnPatientPath}/{patientId}";
+
+            openmrsClientMock
+                .Setup(x => x.GetAsync(path))
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent(SamplePatient)
+                })
+                .Verifiable();
+
+            //When
+            var patient = await discoveryDataSource.LoadPatientAsync(patientId);
+
+            //Then
+            Assert.NotNull(patient);
+            patient.Name[0].GivenElement.First().ToString().Should().Be("test");
+        }
+
+        [Fact]
+        public async System.Threading.Tasks.Task LoadPatientAsync_ShouldReturnError_WhenFound() {
+            //Given
+            var openmrsClientMock = new Mock<IOpenMrsClient>();
+            var discoveryDataSource = new FhirDiscoveryDataSource(openmrsClientMock.Object);
+            var invalidPatientId = "000000000";
+            var path = $"{Endpoints.Fhir.OnPatientPath}/{invalidPatientId}";
+
+            openmrsClientMock
+                .Setup(x => x.GetAsync(path))
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.NotFound,
+                    Content = new StringContent(PatientNotFoundData)
+                })
+                .Verifiable();
+
+            //When
+            var patient = await discoveryDataSource.LoadPatientAsync(invalidPatientId);
+
+            //Then
+           patient.Name.Should().BeEmpty();
+           patient.Gender.Should().Be(null);
+        }
         private const string PersonsSample = @"{
             ""resourceType"": ""Bundle"",
             ""id"": ""356ccc7d-fc38-4dab-809b-9efc6e33188a"",
@@ -330,6 +376,52 @@ namespace In.ProjectEKA.HipServiceTest.OpenMrs
                 }
             ]
         }";
+
+        private const string SamplePatient = @"{
+            ""resourceType"": ""Patient"",
+            ""id"": ""95db77c6-cc8a-4208-99cc-c69a207114a3"",
+            ""identifier"": [
+                {
+                    ""id"": ""85e0ebdb-1984-4a6d-8137-2550b12939f1"",
+                    ""use"": ""official"",
+                    ""system"": ""Patient Identifier"",
+                    ""value"": ""OD100001M""
+                }
+            ],
+            ""active"": true,
+            ""name"": [
+                {
+                    ""id"": ""fe860165-b614-4b20-b67e-78735a78c9d1"",
+                    ""family"": ""patient"",
+                    ""given"": [
+                        ""test"",
+                        ""one""
+                    ]
+                }
+            ],
+            ""gender"": ""male"",
+            ""birthDate"": ""1977-04-04"",
+            ""deceasedBoolean"": false,
+            ""address"": [
+                {
+                    ""id"": ""e032e797-32c5-4a8d-b79c-f92c264977b4"",
+                    ""extension"": [
+                        {
+                            ""url"": ""https://fhir.openmrs.org/ext/address"",
+                            ""extension"": [
+                                {
+                                    ""url"": ""https://fhir.openmrs.org/ext/address#address1"",
+                                    ""valueString"": ""Angul""
+                                }
+                            ]
+                        }
+                    ],
+                    ""use"": ""home"",
+                    ""state"": ""Odisha"",
+                    ""country"": ""India""
+                }
+            ]
+        }";
         private const string NotFoundData = @"{
             ""resourceType"": ""Bundle"",
             ""id"": ""aa12ec40-c9e8-40e9-9475-88a8fbab2793"",
@@ -344,6 +436,10 @@ namespace In.ProjectEKA.HipServiceTest.OpenMrs
                     ""url"": ""http://bahmni-0.92.bahmni-covid19.in/openmrs/ws/fhir2/Patient/?gender=O""
                 }
             ]
+        }";
+
+        private const string PatientNotFoundData = @"{
+            ""resourceType"": ""Patient""
         }";
     }
 }

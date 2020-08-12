@@ -7,8 +7,8 @@ namespace In.ProjectEKA.HipService.Discovery
     using HipLibrary.Matcher;
     using HipLibrary.Patient;
     using HipLibrary.Patient.Model;
-    using Link;
     using In.ProjectEKA.HipService.Link.Model;
+    using Link;
     using Logger;
 
     public class PatientDiscovery: IPatientDiscovery
@@ -17,17 +17,20 @@ namespace In.ProjectEKA.HipService.Discovery
         private readonly IDiscoveryRequestRepository discoveryRequestRepository;
         private readonly ILinkPatientRepository linkPatientRepository;
         private readonly IPatientRepository patientRepository;
+        private readonly ICareContextRepository careContextRepository;
 
         public PatientDiscovery(
             IMatchingRepository matchingRepository,
             IDiscoveryRequestRepository discoveryRequestRepository,
             ILinkPatientRepository linkPatientRepository,
-            IPatientRepository patientRepository)
+            IPatientRepository patientRepository,
+            ICareContextRepository careContextRepository)
         {
             this.matchingRepository = matchingRepository;
             this.discoveryRequestRepository = discoveryRequestRepository;
             this.linkPatientRepository = linkPatientRepository;
             this.patientRepository = patientRepository;
+            this.careContextRepository = careContextRepository;
         }
 
         public virtual async Task<ValueTuple<DiscoveryRepresentation, ErrorRepresentation>> PatientFor(
@@ -55,7 +58,8 @@ namespace In.ProjectEKA.HipService.Discovery
             {
                 Log.Information($"Found already linked care contexts for transaction {request.TransactionId}.");
 
-                return await patientRepository.PatientWith(linkedCareContexts.First().PatientReferenceNumber)
+                var patient = await patientRepository.PatientWithAsync(linkedCareContexts.First().PatientReferenceNumber);
+                return await patient
                     .Map(async patient =>
                     {
                         await discoveryRequestRepository.Add(new Model.DiscoveryRequest(request.TransactionId,
@@ -70,6 +74,12 @@ namespace In.ProjectEKA.HipService.Discovery
             }
 
             var patients = await matchingRepository.Where(request);
+            foreach (var patient in patients)
+            {
+                var careContexts = await careContextRepository.GetCareContexts(patient.Identifier);
+                patient.CareContexts = careContexts;
+            }
+
             var (patientEnquiryRepresentation, error) =
                 DiscoveryUseCase.DiscoverPatient(Filter.Do(patients, request).AsQueryable());
             if (patientEnquiryRepresentation == null)

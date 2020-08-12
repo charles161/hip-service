@@ -8,11 +8,11 @@ using Patient = Hl7.Fhir.Model.Patient;
 
 namespace In.ProjectEKA.HipService.OpenMrs
 {
-    public class DiscoveryDataSource : IPatientDal
+    public class FhirDiscoveryDataSource : IPatientDal
     {
         private readonly IOpenMrsClient openMrsClient;
 
-        public DiscoveryDataSource(IOpenMrsClient openMrsClient)
+        public FhirDiscoveryDataSource(IOpenMrsClient openMrsClient)
         {
             this.openMrsClient = openMrsClient;
         }
@@ -47,6 +47,14 @@ namespace In.ProjectEKA.HipService.OpenMrs
             });
             
             return patients;
+        }
+    
+        public async Task<Patient> LoadPatientAsync(string patientId) {
+            var path = $"{DiscoveryPathConstants.OnPatientPath}/{patientId}";
+            var response = await openMrsClient.GetAsync(path);
+            var content = await response.Content.ReadAsStringAsync();
+            var patient = new FhirJsonParser().Parse<Patient>(content);
+            return patient;
         }
     }
 }
