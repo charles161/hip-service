@@ -106,6 +106,10 @@ namespace In.ProjectEKA.HipService
                 .AddHostedService<MessagingQueueListener>()
                 .AddScoped<IDataFlowRepository, DataFlowRepository>()
                 .AddScoped<IHealthInformationRepository, HealthInformationRepository>()
+                .AddScoped<IHealthCheckClient> (_ => new OpenMrsHealthCheckClient (new Dictionary<string, string> { 
+                { "OpenMRS-FHIR", "ws/fhir2/Patient" },
+                { "OpenMRS-REST", "ws/rest/v1/visit" }}, 
+                new OpenMrsClient (HttpClient,Configuration.GetSection ("OpenMrs").Get<OpenMrsConfiguration> ())))
                 .AddSingleton(Configuration.GetSection("Gateway").Get<GatewayConfiguration>())
                 .AddSingleton(new GatewayClient(HttpClient,
                     Configuration.GetSection("Gateway").Get<GatewayConfiguration>()))
@@ -179,7 +183,8 @@ namespace In.ProjectEKA.HipService
                             return Task.CompletedTask;
                         }
                     };
-                });
+                })
+                .Services.AddHealthChecks ();
 
         private HttpClient HttpClient { get; }
 
@@ -211,7 +216,11 @@ namespace In.ProjectEKA.HipService
                 .UseSerilogRequestLogging()
                 .UseAuthentication()
                 .UseAuthorization()
-                .UseEndpoints(endpoints => { endpoints.MapControllers(); })
+                .UseHealthCheckMiddleware ()
+                .UseEndpoints (endpoints => {
+                    endpoints.MapControllers ();
+                    endpoints.MapHealthChecks ("/health");
+                })
                 .UseHangfireServer(new BackgroundJobServerOptions
                 {
                     CancellationCheckInterval = TimeSpan.FromMinutes(
