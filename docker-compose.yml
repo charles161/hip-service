@@ -4,12 +4,15 @@ services:
     build: .
     ports:
       - "9052:80"
+    environment: 
+      - HEALTH_CHECK_DURATION=5000
     depends_on:
       - db
       - rabbitmq
       - otp
+    restart: unless-stopped
   otp:
-    build: src/In.ProjectEKA.OtpService/.
+    image: "ganesan92/otp-service"
     depends_on:
       - db
   gateway:

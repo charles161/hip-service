@@ -106,10 +106,15 @@ namespace In.ProjectEKA.HipService
                 .AddHostedService<MessagingQueueListener>()
                 .AddScoped<IDataFlowRepository, DataFlowRepository>()
                 .AddScoped<IHealthInformationRepository, HealthInformationRepository>()
-                .AddScoped<IHealthCheckClient> (_ => new OpenMrsHealthCheckClient (new Dictionary<string, string> { 
+                // .AddScoped<HealthCheckCache>(_=> new HealthCheckCache(new List<IHealthCheckClient>(){new OpenMrsHealthCheckClient (new Dictionary<string, string> { 
+                // { "OpenMRS-FHIR", "ws/fhir2/Patient" },
+                // { "OpenMRS-REST", "ws/rest/v1/visit" }}, 
+                // new OpenMrsClient (HttpClient,Configuration.GetSection ("OpenMrs").Get<OpenMrsConfiguration> ()))}))
+                // AddScoped<IHealthCheckClient> ()
+                .AddSingleton(new HealthCheckCache(new List<IHealthCheckClient>(){new OpenMrsHealthCheckClient (new Dictionary<string, string> { 
                 { "OpenMRS-FHIR", "ws/fhir2/Patient" },
                 { "OpenMRS-REST", "ws/rest/v1/visit" }}, 
-                new OpenMrsClient (HttpClient,Configuration.GetSection ("OpenMrs").Get<OpenMrsConfiguration> ())))
+                new OpenMrsClient (HttpClient,Configuration.GetSection ("OpenMrs").Get<OpenMrsConfiguration> ()))}))
                 .AddSingleton(Configuration.GetSection("Gateway").Get<GatewayConfiguration>())
                 .AddSingleton(new GatewayClient(HttpClient,
                     Configuration.GetSection("Gateway").Get<GatewayConfiguration>()))

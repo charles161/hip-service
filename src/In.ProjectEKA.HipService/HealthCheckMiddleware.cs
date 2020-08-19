@@ -15,8 +15,8 @@ public class HealthCheckMiddleware {
         _next = next;
     }
 
-    public async Task Invoke (HttpContext httpContext, IHealthCheckClient healthCheckClient) {
-        Dictionary<string, string> healthResult = await healthCheckClient.CheckHealth ();
+    public async Task Invoke (HttpContext httpContext,HealthCheckCache healthCheckCache) {
+        Dictionary<string, string> healthResult = healthCheckCache.getHealthDetails ();
         bool healthy = true;
         foreach (var entry in healthResult) {
             if (entry.Value != "Healthy") {
