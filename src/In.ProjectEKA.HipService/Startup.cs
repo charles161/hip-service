@@ -27,6 +27,7 @@ namespace In.ProjectEKA.HipService
     using HipLibrary.Matcher;
     using HipLibrary.Patient;
     using In.ProjectEKA.HipService.OpenMrs;
+    using In.ProjectEKA.HipService;
     using Link;
     using Link.Database;
     using MessagingQueue;
@@ -43,6 +44,7 @@ namespace In.ProjectEKA.HipService
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using Serilog;
+    using System.Timers;
 
     public class Startup
     {
@@ -62,6 +64,12 @@ namespace In.ProjectEKA.HipService
                 Timeout = TimeSpan.FromSeconds(Configuration.GetSection("Gateway:timeout").Get<int>())
             };
             IdentityModelEventSource.ShowPII = true;
+            HealthCheckClients =new List<IHealthCheckClient>(){
+                                    new OpenMrsHealthCheckClient (
+                                        new Dictionary<string, string> { { "OpenMRS-FHIR", "ws/fhir2/Patient" },{ "OpenMRS-REST", "ws/rest/v1/visit" }},
+                                        new OpenMrsClient (HttpClient,Configuration.GetSection ("OpenMrs").Get<OpenMrsConfiguration> ()))};
+            InMemoryCache = new Cache();
+            HipTimer = new Timer(Convert.ToInt64(Environment.GetEnvironmentVariable("HEALTH_CHECK_DURATION")));
         }
 
         private IConfiguration Configuration { get; }
@@ -100,22 +108,13 @@ namespace In.ProjectEKA.HipService
                 .AddSingleton<DataFlowNotificationClient>()
                 .AddSingleton<DataEntryFactory>()
                 .AddSingleton<DataFlowMessageHandler>()
-                .AddSingleton(HttpClient)
+                .AddSingleton(new HealthChecker(HealthCheckClients,InMemoryCache,HipTimer))
+                .AddSingleton(InMemoryCache)
                 .AddScoped<IPatientVerification, PatientVerification>()
                 .AddScoped<IConsentRepository, ConsentRepository>()
                 .AddHostedService<MessagingQueueListener>()
                 .AddScoped<IDataFlowRepository, DataFlowRepository>()
                 .AddScoped<IHealthInformationRepository, HealthInformationRepository>()
-                // .AddScoped<HealthCheckCache>(_=> new HealthCheckCache(new List<IHealthCheckClient>(){new OpenMrsHealthCheckClient (new Dictionary<string, string> { 
-                // { "OpenMRS-FHIR", "ws/fhir2/Patient" },
-                // { "OpenMRS-REST", "ws/rest/v1/visit" }}, 
-                // new OpenMrsClient (HttpClient,Configuration.GetSection ("OpenMrs").Get<OpenMrsConfiguration> ()))}))
-                // AddScoped<IHealthCheckClient> ()
-                .AddSingleton(new HealthCheckCache(new List<IHealthCheckClient>(){new OpenMrsHealthCheckClient (new Dictionary<string, string> { 
-                { "OpenMRS-FHIR", "ws/fhir2/Patient" },
-                { "OpenMRS-REST", "ws/rest/v1/visit" }}, 
-                new OpenMrsClient (HttpClient,Configuration.GetSection ("OpenMrs").Get<OpenMrsConfiguration> ()))}))
-                .AddSingleton<HealthCheckInvoker>()
                 .AddSingleton(Configuration.GetSection("Gateway").Get<GatewayConfiguration>())
                 .AddSingleton(new GatewayClient(HttpClient,
                     Configuration.GetSection("Gateway").Get<GatewayConfiguration>()))
@@ -193,6 +192,9 @@ namespace In.ProjectEKA.HipService
                 .Services.AddHealthChecks ();
 
         private HttpClient HttpClient { get; }
+        private Cache InMemoryCache { get; }
+        private Timer HipTimer { get; }
+        private List<IHealthCheckClient> HealthCheckClients { get; }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {

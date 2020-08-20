@@ -4,13 +4,13 @@ services:
     build: .
     ports:
       - "9052:80"
-    environment: 
-      - HEALTH_CHECK_DURATION=5000
     depends_on:
       - db
       - rabbitmq
       - otp
     restart: unless-stopped
+    environment: 
+      - HEALTH_CHECK_DURATION=5000
   otp:
     image: "ganesan92/otp-service"
     depends_on:

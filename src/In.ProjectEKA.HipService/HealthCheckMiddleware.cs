@@ -15,18 +15,20 @@ public class HealthCheckMiddleware {
         _next = next;
     }
 
-    public async Task Invoke (HttpContext httpContext,HealthCheckCache healthCheckCache) {
-        Dictionary<string, string> healthResult = healthCheckCache.getHealthDetails ();
+    public async Task Invoke (HttpContext httpContext,Cache cache) {
+        Dictionary<string, string> healthStatus = (Dictionary<string, string>) cache.get("health");
         bool healthy = true;
-        foreach (var entry in healthResult) {
-            if (entry.Value != "Healthy") {
-                healthy = false;
-                break;
+        if(healthStatus!=null){
+            foreach (var entry in healthStatus) {
+                if (entry.Value != "Healthy") {
+                    healthy = false;
+                    break;
+                }
             }
         }
         if (!healthy) {
             httpContext.Response.StatusCode = 500;
-            await httpContext.Response.WriteAsync (JsonConvert.SerializeObject (healthResult));
+            await httpContext.Response.WriteAsync (JsonConvert.SerializeObject (healthStatus));
         } else {
             await _next (httpContext);
         }
