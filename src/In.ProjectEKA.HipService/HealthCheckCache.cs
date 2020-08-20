@@ -16,8 +16,6 @@ using Microsoft.AspNetCore.Hosting;
 
         public HealthCheckCache (List<IHealthCheckClient> initHealthCheckClientList) {
             healthCheckClientList = initHealthCheckClientList;
-            Console.WriteLine("Checking for ENV var");
-            
         }
 
         public async Task UpdateHealthDetails () {

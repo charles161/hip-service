@@ -115,6 +115,7 @@ namespace In.ProjectEKA.HipService
                 { "OpenMRS-FHIR", "ws/fhir2/Patient" },
                 { "OpenMRS-REST", "ws/rest/v1/visit" }}, 
                 new OpenMrsClient (HttpClient,Configuration.GetSection ("OpenMrs").Get<OpenMrsConfiguration> ()))}))
+                .AddSingleton<HealthCheckInvoker>()
                 .AddSingleton(Configuration.GetSection("Gateway").Get<GatewayConfiguration>())
                 .AddSingleton(new GatewayClient(HttpClient,
                     Configuration.GetSection("Gateway").Get<GatewayConfiguration>()))

@@ -17,6 +17,7 @@ namespace In.ProjectEKA.HipServiceTest.OpenMrs {
     public class HealthCheckCacheTest {
         HealthCheckCache healthCheckCache;
         private Mock<IHealthCheckClient> healthCheckClient;
+        HealthCheckInvoker healthCheckInvoker;
 
         [Fact]
         private void ShouldUpdateHealthWhenUpdateHealthDetailsIsInvoked() {
@@ -28,7 +29,7 @@ namespace In.ProjectEKA.HipServiceTest.OpenMrs {
             healthCheckCache = new HealthCheckCache(new List<IHealthCheckClient>(){
                 healthCheckClient.Object
             });
-            healthCheckCache.UpdateHealthDetails();
+            //healthCheckCache.UpdateHealthDetails();
             
             healthCheckClient.Setup (x => x.CheckHealth ())
                 .Returns (Task.FromResult (new Dictionary<string, string> (){
@@ -36,7 +37,8 @@ namespace In.ProjectEKA.HipServiceTest.OpenMrs {
                 }));
 
             var firstHealthCheck = healthCheckCache.getHealthDetails();
-            healthCheckCache.UpdateHealthDetails();
+            healthCheckInvoker = new HealthCheckInvoker(healthCheckCache);
+            //healthCheckCache.UpdateHealthDetails();
             var secondHealthCheck = healthCheckCache.getHealthDetails();
 
             Assert.True(firstHealthCheck["service"].Equals("Unhealthy"));
