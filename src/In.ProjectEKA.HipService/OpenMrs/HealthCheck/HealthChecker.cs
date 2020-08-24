@@ -19,7 +19,6 @@ using In.ProjectEKA.HipService.OpenMrs.HealthCheck;
         private IHealthCheckStatus healthCheckStatus;
 
         public HealthChecker (IHealthCheckClient initHealthCheckClient, IHealthCheckStatus inithealthCheckStatus) {
-            Console.WriteLine("Health checker is being created");
             healthCheckClient = initHealthCheckClient;
             healthCheckStatus = inithealthCheckStatus;
             timer = new Timer(Convert.ToInt32(Environment.GetEnvironmentVariable("HEALTH_CHECK_DURATION")));
