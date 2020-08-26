@@ -13,7 +13,6 @@ namespace In.ProjectEKA.HipServiceTest.OpenMrs
     using Moq;
     using Xunit;
     using Microsoft.AspNetCore.Hosting;
-    using FluentAssertions;
 
     [Collection("Health Check Status Tests")]
     public class HealthCheckStatusTest

@@ -1,15 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
-using In.ProjectEKA.HipService.OpenMrs;
-using In.ProjectEKA.HipService;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Newtonsoft.Json;
 using System.Timers;
-using Microsoft.AspNetCore.Hosting;
 using In.ProjectEKA.HipService.OpenMrs.HealthCheck;
 
     public class HealthChecker {

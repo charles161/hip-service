@@ -1,14 +1,10 @@
 // You may need to install the Microsoft.AspNetCore.Http.Abstractions package into your project
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
-using In.ProjectEKA.HipService.OpenMrs;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Newtonsoft.Json;
-using In.ProjectEKA.HipService;
 using In.ProjectEKA.HipService.OpenMrs.HealthCheck;
 
 public class HealthCheckMiddleware
