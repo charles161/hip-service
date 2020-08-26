@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Net;
-using System.Text;
 using System.Threading.Tasks;
 using In.ProjectEKA.HipService.Logger;
 using In.ProjectEKA.HipService.OpenMrs.HealthCheck;
@@ -37,10 +35,10 @@ namespace In.ProjectEKA.HipService.OpenMrs
                         result.Add(entry.Key, "Unhealthy");
                     }
                 }
-                catch (Exception e)
+                catch (Exception exception)
                 {
                     result.Add(entry.Key, "Unhealthy");
-                    Console.WriteLine(e);
+                    Log.Fatal(exception, exception.StackTrace);
                 }
             }
             return result;
